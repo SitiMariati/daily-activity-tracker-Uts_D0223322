@@ -1,129 +1,99 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Daily Activity Tracker</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(to right, #87CEEB, #B0E0E6);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        .container {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            width: 350px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-
-        h2 {
-            text-align: center;
-            color: #0077b6;
-        }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            outline: none;
-        }
-
-        input:focus {
-            border-color: #00b4d8;
-        }
-
-        button {
-            width: 100%;
-            padding: 10px;
-            background: #00b4d8;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        button:hover {
-            background: #0077b6;
-        }
-
-        #total {
-            margin-top: 15px;
-            font-weight: bold;
-            color: #023e8a;
-            text-align: center;
-        }
-
-        ol {
-            margin-top: 15px;
-            padding-left: 20px;
-        }
-
-        li {
-            background: #e0f7ff;
-            padding: 8px;
-            margin: 5px 0;
-            border-radius: 6px;
-        }
-    </style>
-
+  <meta charset="utf-8">
+  <title>Student Productivity Analyzer</title>
+  <style>
+    body { font-family: Arial; margin: 24px; max-width: 700px; }
+    input, button { padding: 8px; margin: 4px; }
+    #list, #result {
+      border: 1px solid #ddd; padding: 10px; margin-top: 10px; white-space: pre-line;
+    }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Daily Activity Tracker</h2>
+<h2>Student Productivity Analyzer</h2>
+<p>Masukkan aktivitas harian untuk dianalisis oleh AI.</p>
 
-    <input type="text" id="aktivitas" placeholder="contoh: belajar, olahraga">
-    <input type="number" id="durasi" placeholder="Durasi (menit)">
-    <button id="tambah">Tambah</button>
+<input id="act" placeholder="contoh: belajar, game">
+<input id="min" type="number" placeholder="menit">
 
-    <p id="total">Total: 0 menit (0 aktivitas)</p>
+<button onclick="tambah()">Tambah</button>
+<button onclick="analisis()">Analisis AI</button>
 
-    <ol id="list"></ol>
-</div>
+<p id="total">Total: 0 menit</p>
+
+<h3>Aktivitas:</h3>
+<div id="list">Belum ada data</div>
+
+<h3>Analisis AI:</h3>
+<div id="result">Belum dianalisis</div>
 
 <script>
-    const inputAktivitas = document.getElementById("aktivitas");
-    const inputDurasi = document.getElementById("durasi");
-    const btnTambah = document.getElementById("tambah");
-    const list = document.getElementById("list");
-    const totalText = document.getElementById("total");
+let data = [];
 
-    let totalMenit = 0;
-    let jumlahAktivitas = 0;
+function render() {
+  let total = 0;
+  let text = "";
 
-    btnTambah.addEventListener("click", function () {
-        const aktivitas = inputAktivitas.value;
-        const durasi = parseInt(inputDurasi.value);
+  data.forEach((d, i) => {
+    total += d.m;
+    text += (i+1) + ". " + d.a + " - " + d.m + " menit\n";
+  });
 
-        if (aktivitas === "" || isNaN(durasi)) {
-            alert("Isi aktivitas dan durasi dengan benar!");
-            return;
-        }
+  document.getElementById("total").innerText =
+    "Total: " + total + " menit";
 
-        const li = document.createElement("li");
-        li.textContent = aktivitas + " — " + durasi + " menit";
-        list.appendChild(li);
+  document.getElementById("list").innerText =
+    text || "Belum ada data";
+}
 
-        totalMenit += durasi;
-        jumlahAktivitas++;
+function tambah() {
+  const a = document.getElementById("act").value;
+  const m = Number(document.getElementById("min").value);
 
-        totalText.textContent = 
-            "Total: " + totalMenit + " menit (" + jumlahAktivitas + " aktivitas)";
+  if (!a || !m) return alert("Isi data dengan benar");
 
-        inputAktivitas.value = "";
-        inputDurasi.value = "";
+  data.push({ a, m });
+
+  document.getElementById("act").value = "";
+  document.getElementById("min").value = "";
+
+  render();
+}
+
+async function analisis() {
+  if (data.length === 0) return;
+
+  document.getElementById("result").innerText = "Menganalisis...";
+
+  const daftar = data.map((d, i) =>
+    (i+1) + ". " + d.a + " - " + d.m + " menit"
+  ).join("\n");
+
+  try {
+    const res = await fetch("https://activity-ai-backend.vercel.app/api/analyze", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        activities: daftar
+      })
     });
+
+    const json = await res.json();
+
+    document.getElementById("result").innerText =
+      json.result || json.error;
+
+  } catch {
+    document.getElementById("result").innerText = "Gagal koneksi ke AI";
+  }
+}
+
+render();
 </script>
 
 </body>
